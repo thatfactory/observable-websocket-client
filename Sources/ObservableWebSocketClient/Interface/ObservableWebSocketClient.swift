@@ -29,7 +29,7 @@ public final class ObservableWebSocketClient: Identifiable, Equatable, Codable, 
     private(set) var pingTimer: Timer?
     private let pingTimerInterval: TimeInterval?
     private let pingMessage: String?
-    private let pingMessageWithGeneratedId: ((String) -> String)?
+    private let pingMessageWithGeneratedId: (@Sendable (String) -> String)?
 
     private(set) var service: ObservableWebSocketService
 
@@ -78,7 +78,7 @@ public final class ObservableWebSocketClient: Identifiable, Equatable, Codable, 
                 codableError: CodableError? = nil,
                 pingTimerInterval: TimeInterval? = nil,
                 pingMessage: String? = nil,
-                pingMessageWithGeneratedId: ((String) -> String)? = nil) {
+                pingMessageWithGeneratedId: (@Sendable (String) -> String)? = nil) {
         self.id = id
         self.websocketURL = websocketURL
         self.codableMessage = message
@@ -101,15 +101,21 @@ public final class ObservableWebSocketClient: Identifiable, Equatable, Codable, 
 
 private extension ObservableWebSocketClient {
     func startPingTimer() {
-        if let pingTimerInterval,
-           pingMessage?.isEmpty == false || pingMessageWithGeneratedId != nil {
+        guard let pingTimerInterval,
+              pingMessage?.isEmpty == false || pingMessageWithGeneratedId != nil
+        else { return }
+
+        let service = service
+        if let pingMessage, !pingMessage.isEmpty {
             pingTimer = Timer.scheduledTimer(
-                withTimeInterval: pingTimerInterval, repeats: true) { [weak self] _ in
-                    if let message = self?.pingMessage {
-                        self?.sendMessage(message)
-                    } else if let messageWithGeneratedId = self?.pingMessageWithGeneratedId {
-                        self?.sendMessageWithGeneratedId(messageWithGeneratedId)
-                    }
+                withTimeInterval: pingTimerInterval, repeats: true) { _ in
+                    service.send(message: pingMessage)
+                }
+        } else if let pingMessageWithGeneratedId {
+            pingTimer = Timer.scheduledTimer(
+                withTimeInterval: pingTimerInterval, repeats: true) { _ in
+                    let messageWithId = pingMessageWithGeneratedId(UUID().uuidString)
+                    service.send(message: messageWithId)
                 }
         }
     }

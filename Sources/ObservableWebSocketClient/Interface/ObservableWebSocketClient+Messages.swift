@@ -58,7 +58,7 @@ public extension ObservableWebSocketClient {
     /// ```
     /// {"id": "123e4567-e89b-12d3-a456-426614174000", "type": "ping"}
     /// ```
-    func sendMessageWithGeneratedId(_ idInjector: ((String) -> String)) {
+    func sendMessageWithGeneratedId(_ idInjector: (@Sendable (String) -> String)) {
         let uniqueId = UUID().uuidString
         let messageWithId = idInjector(uniqueId)
         service.send(message: messageWithId)

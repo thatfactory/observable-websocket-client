@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.2
 
 import PackageDescription
 
@@ -15,13 +15,19 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/backslash-f/toolbox.git", from: "1.0.0")
+        .package(
+            url: "https://github.com/thatfactory/toolbox.git",
+            from: "0.1.0"
+        )
     ],
     targets: [
         .target(
             name: "ObservableWebSocketClient",
             dependencies: [
-                .product(name: "Toolbox", package: "toolbox")
+                .product(
+                    name: "Toolbox",
+                    package: "toolbox"
+                )
             ]
         ),
         .testTarget(

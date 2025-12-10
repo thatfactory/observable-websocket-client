@@ -8,7 +8,7 @@
 import Foundation
 import Toolbox
 
-public final class ObservableWebSocketService: ObservableObject {
+public final class ObservableWebSocketService: ObservableObject, @unchecked Sendable {
 
     @Published public var message: URLSessionWebSocketTask.Message?
 
@@ -35,11 +35,11 @@ public extension ObservableWebSocketService {
 
     func send(message: String) {
         let wsMessage = URLSessionWebSocketTask.Message.string(message)
-        webSocketTask?.send(wsMessage) { error in
-            if let error {
-                Task { @MainActor in
-                    self.codableError = .init(error)
-                }
+        webSocketTask?.send(wsMessage) { [weak self] error in
+            guard let self, let error else { return }
+
+            Task { @MainActor in
+                self.codableError = .init(error)
             }
         }
     }
@@ -60,15 +60,18 @@ private extension ObservableWebSocketService {
     }
 
     func receiveMessage() {
-        webSocketTask?.receive { result in
-            switch result {
-            case .success(let message):
-                self.message = message
-                // Listen for the next message.
-                self.receiveMessage()
+        webSocketTask?.receive { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch result {
+                case .success(let message):
+                    self.message = message
+                    // Listen for the next message.
+                    self.receiveMessage()
 
-            case .failure(let error):
-                self.codableError = .init(error)
+                case .failure(let error):
+                    self.codableError = .init(error)
+                }
             }
         }
     }
